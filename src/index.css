@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* ============================================
+   KLaW Reviews theme tokens
+   Two modes: regular (indoor) and sun (outdoor max-contrast)
+   Sun mode is activated by adding class="sun" to <html>
+   ============================================ */
+
+:root {
+  /* Regular / indoor mode — soft fizzy citrus */
+  --bg-from:        #ecfeff;  /* cyan-50  */
+  --bg-to:          #f7fee7;  /* lime-50  */
+  --card-bg:        #ffffff;
+  --card-shadow:    0 20px 25px -5px rgb(0 0 0 / 0.10), 0 8px 10px -6px rgb(0 0 0 / 0.10);
+
+  --text-strong:    #111827;  /* gray-900 */
+  --text-body:      #374151;  /* gray-700 */
+  --text-muted:     #6b7280;  /* gray-500 */
+  --divider:        #e5e7eb;  /* gray-200 */
+
+  --accent-primary: #0e7490;  /* cyan-700  - titles, primary brand color */
+  --accent-leaf:    #4d7c0f;  /* lime-700  - secondary accent */
+
+  --rating-bg:      #0e7490;  /* cyan-700 */
+  --rating-fg:      #ffffff;
+}
+
+html.sun {
+  /* Sun / outdoor mode — max contrast, saturated, bold */
+  --bg-from:        #ffffff;
+  --bg-to:          #ffffff;
+  --card-bg:        #ffffff;
+  --card-shadow:    0 0 0 2px #0e7490;  /* swap shadow for a hard cyan border */
+
+  --text-strong:    #000000;
+  --text-body:      #1f2937;  /* gray-800 */
+  --text-muted:     #374151;  /* gray-700 — still readable in sun */
+  --divider:        #9ca3af;  /* gray-400 — visible divider */
+
+  --accent-primary: #155e75;  /* cyan-800 — deeper, more saturated */
+  --accent-leaf:    #365314;  /* lime-900 */
+
+  --rating-bg:      #000000;
+  --rating-fg:      #ffffff;
+}
+
+body {
+  background: linear-gradient(135deg, var(--bg-from), var(--bg-to));
+  min-height: 100vh;
+}
