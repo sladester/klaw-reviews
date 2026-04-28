@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { applyFilters, SORT_OPTIONS, uniqueTypes, uniqueTags } from '../lib/filtering'
+import { applyFilters, SORT_OPTIONS, uniqueTypes, uniqueTags, uniqueBrands } from '../lib/filtering'
 import DrinkRow from './DrinkRow'
 import DetailDrawer from './DetailDrawer'
+
+const REVIEWER_NAMES = { kris: 'Kris', laurie: 'Laurie', wendy: 'Wendy' }
 
 export default function ListView({ drinks, pendingFilter, onFilterApplied }) {
   const [search, setSearch]               = useState('')
   const [type, setType]                   = useState('All')
   const [tag, setTag]                     = useState('')
+  const [brand, setBrand]                 = useState('')
   const [sort, setSort]                   = useState('rating-desc')
   const [needsReviewOnly, setNeedsReview] = useState(false)
   const [rating, setRating]               = useState(null)
+  const [reviewer, setReviewer]           = useState(null)
   const [selected, setSelected]           = useState(null)
 
   // Apply incoming filter from Stats view click-through
@@ -18,15 +22,18 @@ export default function ListView({ drinks, pendingFilter, onFilterApplied }) {
     setSearch(pendingFilter.search ?? '')
     setType(pendingFilter.type ?? 'All')
     setTag('')
+    setBrand(pendingFilter.brand ?? '')
     setNeedsReview(false)
     setSort('rating-desc')
     setRating(pendingFilter.rating ?? null)
+    setReviewer(pendingFilter.reviewer ?? null)
     setSelected(pendingFilter.openDrink ?? null)
     onFilterApplied()
   }, [pendingFilter, onFilterApplied])
 
-  const types = useMemo(() => uniqueTypes(drinks), [drinks])
-  const tags  = useMemo(() => uniqueTags(drinks),  [drinks])
+  const types  = useMemo(() => uniqueTypes(drinks),  [drinks])
+  const tags   = useMemo(() => uniqueTags(drinks),   [drinks])
+  const brands = useMemo(() => uniqueBrands(drinks), [drinks])
 
   const unratedCount = useMemo(
     () => drinks.filter(d => d.ratings.overall == null).length,
@@ -34,7 +41,7 @@ export default function ListView({ drinks, pendingFilter, onFilterApplied }) {
   )
 
   const filtered = useMemo(() => {
-    let out = applyFilters(drinks, { search, type, tag, sort })
+    let out = applyFilters(drinks, { search, type, tag, brand, sort })
     if (needsReviewOnly) {
       out = out.filter(d => d.ratings.overall == null)
     }
@@ -43,8 +50,11 @@ export default function ListView({ drinks, pendingFilter, onFilterApplied }) {
         d => d.ratings.overall != null && Math.round(d.ratings.overall) === rating
       )
     }
+    if (reviewer) {
+      out = out.filter(d => d.ratings[reviewer] != null)
+    }
     return out
-  }, [drinks, search, type, tag, sort, needsReviewOnly, rating])
+  }, [drinks, search, type, tag, brand, sort, needsReviewOnly, rating, reviewer])
 
   const inputStyle = {
     background: 'var(--bg-from)',
@@ -52,7 +62,7 @@ export default function ListView({ drinks, pendingFilter, onFilterApplied }) {
     color: 'var(--text-strong)',
   }
 
-  const showChipRow = unratedCount > 0 || rating != null
+  const showChipRow = unratedCount > 0 || rating != null || reviewer != null
 
   return (
     <>
@@ -65,12 +75,18 @@ export default function ListView({ drinks, pendingFilter, onFilterApplied }) {
         style={inputStyle}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         <select value={type} onChange={e => setType(e.target.value)}
                 className="px-3 py-2 rounded-lg outline-none" style={inputStyle}>
           {types.map(t => (
             <option key={t} value={t}>{t === 'All' ? 'All types' : t}</option>
           ))}
+        </select>
+
+        <select value={brand} onChange={e => setBrand(e.target.value)}
+                className="px-3 py-2 rounded-lg outline-none" style={inputStyle}>
+          <option value="">All brands</option>
+          {brands.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
 
         <select value={tag} onChange={e => setTag(e.target.value)}
@@ -117,6 +133,18 @@ export default function ListView({ drinks, pendingFilter, onFilterApplied }) {
               title="Clear rating filter"
             >
               <span>Rated {rating}</span>
+              <span aria-hidden="true">✕</span>
+            </button>
+          )}
+
+          {reviewer != null && (
+            <button
+              onClick={() => setReviewer(null)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold transition active:scale-95"
+              style={{ background: 'var(--accent-primary)', color: 'white' }}
+              title="Clear reviewer filter"
+            >
+              <span>Rated by {REVIEWER_NAMES[reviewer]}</span>
               <span aria-hidden="true">✕</span>
             </button>
           )}

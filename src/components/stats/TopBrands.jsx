@@ -20,7 +20,7 @@ export default function TopBrands({ drinks, goToList }) {
           <li key={brand}>
             <button
               type="button"
-              onClick={() => goToList?.({ search: brand })}
+              onClick={() => goToList?.({ brand })}
               className="w-full flex items-baseline justify-between gap-3 py-1 px-2 -mx-2 rounded-lg text-left transition hover:opacity-80 active:scale-[.99] cursor-pointer"
               title={`Show all ${brand} drinks`}
             >

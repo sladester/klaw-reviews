@@ -65,7 +65,7 @@ export default function StatsView({ drinks, goToList }) {
         <div className="lg:col-span-2">
           <RatingDistribution drinks={filtered} goToList={goToListScoped} />
         </div>
-        <ReviewerComparison drinks={filtered} />
+        <ReviewerComparison drinks={filtered} goToList={goToListScoped} />
         <ReviewerDisagreement drinks={filtered} goToList={goToListScoped} />
       </div>
     </div>

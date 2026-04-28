@@ -9,7 +9,7 @@ export const SORT_OPTIONS = [
   { value: 'cal-asc',      label: 'Calories (low → high)' },
 ]
 
-export function applyFilters(drinks, { search, type, tag, sort }) {
+export function applyFilters(drinks, { search, type, tag, brand, sort }) {
   let out = drinks
 
   if (search) {
@@ -27,6 +27,10 @@ export function applyFilters(drinks, { search, type, tag, sort }) {
 
   if (tag) {
     out = out.filter(d => d.tags.includes(tag))
+  }
+
+  if (brand) {
+    out = out.filter(d => d.brand === brand)
   }
 
   out = [...out].sort((a, b) => {
@@ -72,4 +76,9 @@ export function uniqueTags(drinks) {
   const set = new Set()
   drinks.forEach(d => d.tags.forEach(t => set.add(t)))
   return [...set].sort()
+}
+
+export function uniqueBrands(drinks) {
+  const set = new Set(drinks.map(d => d.brand).filter(Boolean))
+  return [...set].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
 }
