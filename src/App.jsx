@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { fetchDrinks } from './lib/sheets'
 import { isAuthed } from './lib/auth'
 import Login from './components/Login'
 import ListView from './components/ListView'
 import StatsView from './components/StatsView'
+import DrinkForm from './components/DrinkForm'
 
 function App() {
   const [authed, setAuthed]   = useState(() => isAuthed())
@@ -11,6 +12,8 @@ function App() {
   const [error, setError]     = useState(null)
   const [view, setView]       = useState('list')
   const [pendingFilter, setPendingFilter] = useState(null)
+  const [formMode, setFormMode] = useState(null) // null | 'add' | 'edit'
+  const [editDrink, setEditDrink] = useState(null)
   const [sunMode, setSunMode] = useState(
     () => localStorage.getItem('klaw_sun_mode') === '1'
   )
@@ -25,9 +28,42 @@ function App() {
     fetchDrinks().then(setDrinks).catch(err => setError(err.message))
   }, [authed])
 
+  const knownTypes = useMemo(() => {
+    if (!drinks) return []
+    const s = new Set(drinks.map(d => d.type).filter(Boolean))
+    return [...s].sort()
+  }, [drinks])
+
   const goToList = (filter) => {
     setPendingFilter(filter ?? {})
     setView('list')
+  }
+
+  const handleAdd = () => {
+    setEditDrink(null)
+    setFormMode('add')
+  }
+
+  const handleEdit = (drink) => {
+    setEditDrink(drink)
+    setFormMode('edit')
+  }
+
+  const handleFormClose = () => {
+    setFormMode(null)
+    setEditDrink(null)
+  }
+
+  const handleFormSaved = async () => {
+    setFormMode(null)
+    setEditDrink(null)
+    // Refetch to get the new/updated row
+    try {
+      const fresh = await fetchDrinks()
+      setDrinks(fresh)
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
   if (!authed) {
@@ -44,18 +80,31 @@ function App() {
           <h1 className="text-3xl sm:text-4xl font-bold" style={{ color: 'var(--accent-primary)' }}>
             KLaW Reviews
           </h1>
-          <button
-            onClick={() => setSunMode(s => !s)}
-            className="text-2xl rounded-full w-11 h-11 flex items-center justify-center transition active:scale-95"
-            style={{
-              background: 'var(--bg-from)',
-              border: '1px solid var(--divider)',
-            }}
-            aria-label={sunMode ? 'Switch to indoor mode' : 'Switch to sun mode'}
-            title={sunMode ? 'Switch to indoor mode' : 'Switch to sun mode'}
-          >
-            {sunMode ? '🌙' : '☀️'}
-          </button>
+          <div className="flex items-center gap-2">
+            {drinks && (
+              <button
+                onClick={handleAdd}
+                className="rounded-full w-11 h-11 flex items-center justify-center transition active:scale-95 text-white text-2xl font-bold"
+                style={{ background: 'var(--accent-primary)' }}
+                aria-label="Add a drink"
+                title="Add a drink"
+              >
+                +
+              </button>
+            )}
+            <button
+              onClick={() => setSunMode(s => !s)}
+              className="text-2xl rounded-full w-11 h-11 flex items-center justify-center transition active:scale-95"
+              style={{
+                background: 'var(--bg-from)',
+                border: '1px solid var(--divider)',
+              }}
+              aria-label={sunMode ? 'Switch to indoor mode' : 'Switch to sun mode'}
+              title={sunMode ? 'Switch to indoor mode' : 'Switch to sun mode'}
+            >
+              {sunMode ? '🌙' : '☀️'}
+            </button>
+          </div>
         </header>
 
         {drinks && (
@@ -93,12 +142,23 @@ function App() {
             drinks={drinks}
             pendingFilter={pendingFilter}
             onFilterApplied={() => setPendingFilter(null)}
+            onEditDrink={handleEdit}
           />
         )}
         {drinks && view === 'stats' && (
           <StatsView drinks={drinks} goToList={goToList} />
         )}
       </div>
+
+      {formMode && (
+        <DrinkForm
+          mode={formMode}
+          drink={editDrink}
+          knownTypes={knownTypes}
+          onClose={handleFormClose}
+          onSaved={handleFormSaved}
+        />
+      )}
     </div>
   )
 }

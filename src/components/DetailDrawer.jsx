@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { totalWineUrl, googleUrl } from '../lib/links'
 
-export default function DetailDrawer({ drink, onClose }) {
+export default function DetailDrawer({ drink, onClose, onEdit }) {
   useEffect(() => {
     if (!drink) return
     const handler = e => { if (e.key === 'Escape') onClose() }
@@ -24,6 +24,7 @@ export default function DetailDrawer({ drink, onClose }) {
 
   const totalWineStyle = { background: 'var(--accent-primary)', color: '#ffffff' }
   const googleStyle = { background: 'var(--bg-from)', color: 'var(--text-body)', border: '1px solid var(--divider)' }
+  const editStyle = { background: 'var(--bg-from)', color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)' }
 
   return (
     <>
@@ -91,7 +92,12 @@ export default function DetailDrawer({ drink, onClose }) {
           )}
 
           {drink.dateAdded && (
-            <div className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Added: {drink.dateAdded}</div>
+            <div className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+              Added: {drink.dateAdded}
+              {drink.lastModified && drink.lastModified !== drink.dateAdded && (
+                <> · Updated: {drink.lastModified}</>
+              )}
+            </div>
           )}
 
           <div className="pt-4 flex gap-2" style={{ borderTop: '1px solid var(--divider)' }}>
@@ -101,6 +107,11 @@ export default function DetailDrawer({ drink, onClose }) {
             <a href={googleUrl(drink.brand, drink.flavor)} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 rounded-lg font-medium text-sm transition active:scale-95" style={googleStyle}>
               🔎 Google
             </a>
+            {onEdit && (
+              <button onClick={onEdit} className="flex-1 text-center py-2 rounded-lg font-medium text-sm transition active:scale-95" style={editStyle}>
+                ✎ Edit
+              </button>
+            )}
           </div>
         </div>
       </div>

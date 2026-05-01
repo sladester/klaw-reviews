@@ -5,7 +5,7 @@ import DetailDrawer from './DetailDrawer'
 
 const REVIEWER_NAMES = { kris: 'Kris', laurie: 'Laurie', wendy: 'Wendy' }
 
-export default function ListView({ drinks, pendingFilter, onFilterApplied }) {
+export default function ListView({ drinks, pendingFilter, onFilterApplied, onEditDrink }) {
   const [search, setSearch]               = useState('')
   const [type, setType]                   = useState('All')
   const [tag, setTag]                     = useState('')
@@ -63,6 +63,13 @@ export default function ListView({ drinks, pendingFilter, onFilterApplied }) {
   }
 
   const showChipRow = unratedCount > 0 || rating != null || reviewer != null
+
+  function handleEdit() {
+    if (!selected) return
+    const drink = selected
+    setSelected(null)
+    onEditDrink(drink)
+  }
 
   return (
     <>
@@ -174,7 +181,11 @@ export default function ListView({ drinks, pendingFilter, onFilterApplied }) {
         )}
       </div>
 
-      <DetailDrawer drink={selected} onClose={() => setSelected(null)} />
+      <DetailDrawer
+        drink={selected}
+        onClose={() => setSelected(null)}
+        onEdit={onEditDrink ? handleEdit : null}
+      />
     </>
   )
 }
