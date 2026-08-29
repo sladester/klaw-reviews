@@ -36,7 +36,22 @@ const COLS = {
 
 const TOTAL_COLS = 14
 
+// Fields stored as numbers rather than text.
+const NUMERIC_FIELDS = ['overall', 'kris', 'laurie', 'wendy', 'calories', 'abv', 'thcMg']
+
+// Managed by the server, never taken from the client payload.
+const SERVER_FIELDS = ['dateAdded', 'lastModified']
+
 function doPost(e) {
+  // Serialize writes. appendRow is not atomic across concurrent invocations,
+  // so two people saving at once could otherwise land on the same row.
+  const lock = LockService.getScriptLock()
+  try {
+    lock.waitLock(20000)
+  } catch (ex) {
+    return err('Server busy, try again')
+  }
+
   try {
     const body = JSON.parse(e.postData.contents)
     const op = body.op
@@ -46,6 +61,8 @@ function doPost(e) {
     return err('Unknown operation: ' + op)
   } catch (ex) {
     return err(ex.message || String(ex))
+  } finally {
+    lock.releaseLock()
   }
 }
 
@@ -81,26 +98,24 @@ function updateDrink(rowNum, d) {
     throw new Error('Invalid row number: ' + rowNum)
   }
 
-  // Read current Date Added so we don't overwrite it
-  const existingDateAdded = sheet.getRange(rowNum, COLS.dateAdded).getValue()
+  const range = sheet.getRange(rowNum, 1, 1, TOTAL_COLS)
 
-  const row = []
-  row[COLS.brand        - 1] = d.brand
-  row[COLS.flavor       - 1] = d.flavor
-  row[COLS.type         - 1] = d.type
-  row[COLS.overall      - 1] = numOrBlank(d.overall)
-  row[COLS.kris         - 1] = numOrBlank(d.kris)
-  row[COLS.laurie       - 1] = numOrBlank(d.laurie)
-  row[COLS.wendy        - 1] = numOrBlank(d.wendy)
-  row[COLS.calories     - 1] = numOrBlank(d.calories)
-  row[COLS.abv          - 1] = numOrBlank(d.abv)
-  row[COLS.thcMg        - 1] = numOrBlank(d.thcMg)
-  row[COLS.tags         - 1] = d.tags || ''
-  row[COLS.notes        - 1] = d.notes || ''
-  row[COLS.dateAdded    - 1] = existingDateAdded // preserve
+  // Start from whatever is already in the sheet, then overwrite ONLY the
+  // fields the client actually sent. A key the client omits keeps its current
+  // value, so an edit made directly in the spreadsheet is not wiped out by a
+  // browser tab holding stale data. This also preserves Date Added for free.
+  const row = range.getValues()[0]
+
+  Object.keys(COLS).forEach(function (key) {
+    if (SERVER_FIELDS.indexOf(key) >= 0) return
+    if (!Object.prototype.hasOwnProperty.call(d, key)) return
+    const i = COLS[key] - 1
+    row[i] = NUMERIC_FIELDS.indexOf(key) >= 0 ? numOrBlank(d[key]) : (d[key] || '')
+  })
+
   row[COLS.lastModified - 1] = new Date()
 
-  sheet.getRange(rowNum, 1, 1, TOTAL_COLS).setValues([row])
+  range.setValues([row])
   return { row: rowNum }
 }
 

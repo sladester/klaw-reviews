@@ -18,6 +18,18 @@ const EMPTY_FORM = {
   notes: '',
 }
 
+// Fields sent to the Apps Script, matching the keys its COLS map expects.
+const PAYLOAD_FIELDS = [
+  'brand', 'flavor', 'type', 'overall', 'kris', 'laurie', 'wendy',
+  'calories', 'abv', 'thcMg', 'tags', 'notes',
+]
+
+// validate() in apps-script/Code.gs requires these, so they go on every save
+// even when unchanged — otherwise the server rejects the update.
+const ALWAYS_SEND = ['brand', 'flavor', 'type', 'overall']
+
+const TRIM_FIELDS = ['brand', 'flavor', 'type', 'tags']
+
 // Convert a Drink object (as fetched) into form state (strings, no nulls)
 function drinkToForm(d) {
   return {
@@ -48,7 +60,11 @@ export default function DrinkForm({ mode, drink, knownTypes, onClose, onSaved })
   )
 
   const [form, setForm]               = useState(initial)
-  const [showReviewers, setShowRev]   = useState(false)
+  // Expand automatically when the drink already has per-reviewer ratings.
+  // Collapsed, they're invisible on an existing drink and read as missing.
+  const [showReviewers, setShowRev]   = useState(
+    Boolean(initial.kris || initial.laurie || initial.wendy)
+  )
   const [saving, setSaving]           = useState(false)
   const [error, setError]             = useState(null)
   const [typeMode, setTypeMode]       = useState(
@@ -93,19 +109,15 @@ export default function DrinkForm({ mode, drink, knownTypes, onClose, onSaved })
     setError(null)
     setSaving(true)
     try {
-      const payload = {
-        brand:    form.brand.trim(),
-        flavor:   form.flavor.trim(),
-        type:     form.type.trim(),
-        overall:  form.overall,
-        kris:     form.kris,
-        laurie:   form.laurie,
-        wendy:    form.wendy,
-        calories: form.calories,
-        abv:      form.abv,
-        thcMg:    form.thcMg,
-        tags:     form.tags.trim(),
-        notes:    form.notes,
+      // Send only the fields the user actually changed. Anything omitted keeps
+      // its current value in the sheet, so a save can't wipe an edit made
+      // directly in Google Sheets since this page last loaded.
+      const payload = {}
+      for (const key of PAYLOAD_FIELDS) {
+        const value = form[key]
+        const unchanged = isEdit && value === initialRef.current[key]
+        if (unchanged && !ALWAYS_SEND.includes(key)) continue
+        payload[key] = TRIM_FIELDS.includes(key) ? value.trim() : value
       }
       if (isEdit) {
         await updateDrink(drink._row, payload)
